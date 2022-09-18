@@ -20,6 +20,10 @@ Material:
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs:
+    - _Albedo:
+        m_Texture: {fileID: 2800000, guid: 448a1567dda197e48b84fcb843252195, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _BumpMap:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
@@ -38,6 +42,10 @@ Material:
         m_Offset: {x: 0, y: 0}
     - _EmissionMap:
         m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _HDR:
+        m_Texture: {fileID: 8900000, guid: 83918113e0d91443d9774e2d0f97a309, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _IrisHeight:
@@ -95,13 +103,15 @@ Material:
     - _UVSec: 0
     - _ZWrite: 1
     m_Colors:
-    - _Ambient: {r: 0, g: 0, b: 0, a: 1}
+    - _Ambient: {r: 0.33962262, g: 0.33962262, b: 0.33962262, a: 1}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
+    - _HDRRotation: {r: 0.94, g: 1.2, b: 0.31, a: 10.9}
     - _HeightScale: {r: 2.45, g: 0, b: 0, a: 0}
     - _IrisFactor: {r: -0.5, g: 0.35, b: 0.65, a: 1.2}
     - _MapIrisFactor: {r: -13.71, g: 0, b: 0, a: 0}
     - _RefractColor: {r: 0.22745098, g: 0.4392157, b: 0.7176471, a: 0.36078432}
     - _Refraction: {r: 0.12, g: 0.87, b: 1, a: 0}
-    - _ScleraRange: {r: 0, g: 0.12, b: 0, a: 0}
+    - _ScleraRange: {r: 0.86, g: 0.48, b: 1.44, a: 1}
+    - _SpecularRange: {r: 0.71, g: 0.93, b: 0, a: 0}
   m_BuildTextureStacks: []
