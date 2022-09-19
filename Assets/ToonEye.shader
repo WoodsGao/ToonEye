@@ -1,4 +1,4 @@
-Shader "Eye/AnimEye"
+Shader "Eye/ToonEye"
 {
     Properties
     {
@@ -73,6 +73,7 @@ Shader "Eye/AnimEye"
 
             fixed4 frag (v2f i) : SV_Target
             {
+                // discard;
                 float3 normalDir = i.normal;
                 // return float4(normalDir*0.5+0.5, 1);
 
@@ -83,9 +84,9 @@ Shader "Eye/AnimEye"
                 // float height = GetHeightFromUV(i.uv);
                 // float3 refractDir = normalize(lerp(viewDir, -normal, _Refraction.x));
                 // float refractLength = pow(height, _Refraction.z) / dot(faceDir, refractDir);
-                // float3 refractPath = refractDir * refractLength * _Refraction.y * 0.1;
+                // float3 refractPos = refractDir * refractLength * _Refraction.y * 0.1;
                 // // TODO: convert to local space
-                // float2 refractUV = i.uv + float2(refractPath.x, -refractPath.y);
+                // float2 refractUV = i.uv + float2(refractPos.x, -refractPos.y);
                 // float innerHeight = GetHeightFromUV(refractUV);
 
                 float3 albedo = tex2D(_Albedo, i.uv);
@@ -146,7 +147,6 @@ Shader "Eye/AnimEye"
         // 角膜反射折射
         Pass
         {
-            Blend SrcAlpha OneMinusSrcAlpha
             CGPROGRAM
             #pragma multi_compile_fog
             #pragma vertex vert
@@ -158,8 +158,8 @@ Shader "Eye/AnimEye"
             #include "UnityPBSLighting.cginc"
             #include "ToonEye.cginc"
 
-            float4 _Refraction, _ScleraRange;
-            float _Specular, _Ambient;
+            float4 _Refraction, _ScleraRange, _HDRRotation, _RefractColor;
+            float _Specular, _Ambient, _Metallic;
             sampler2D _GrabTexture;
             samplerCUBE _HDR;
 
@@ -193,65 +193,31 @@ Shader "Eye/AnimEye"
             fixed4 frag (v2f i) : SV_Target
             {
                 float3 normalDir = i.normal;
-                float2 screenPos = i.screenPos;
+                // float2 screenPos = i.screenPos;
 
                 float3 viewDir = normalize(_WorldSpaceCameraPos.xyz - i.worldPos.xyz);
                 // 模拟角膜-虹膜折射
                 float3 faceDir = normalize(mul(unity_ObjectToWorld, float4(0,0,1,0)).xyz);
-                float height = i.worldPos.w;
+                float height = saturate(i.worldPos.w-0.2);
+                
                 float3 refractDir = normalize(lerp(viewDir, normalDir, _Refraction.x));
-                float refractLength = height / dot(faceDir, refractDir);
-                float3 refractPath = refractDir * refractLength * _Refraction.y * 0.1;
-                // // TODO: convert to local space
-                screenPos += float2(refractPath.x, -refractPath.y);
-                return tex2D(_GrabTexture, screenPos);
-                // float innerHeight = GetHeightFromUV(refractUV);
+                // return float4(refractDir, 1);
+                float refractLength = dot(height*faceDir, refractDir);
+                float3 refractPos = i.worldPos.xyz + refractDir * refractLength * _Refraction.y * 0.1;
+                float4 refractPosCS = mul(UNITY_MATRIX_VP, float4(refractPos, 1));
 
-                // float3 albedo = tex2D(_Albedo, i.uv);
-                // float lumin = Luminance(albedo);
-                // float specular = tex2D(_SpMask, i.uv).r;
-                // return float4(specular,0,0,1);
-                // float3 iblDir = mul(GetRotationFromEuler(_HDRRotation.xyz), reflect(viewDir, normalDir));
-                // float3 specularLight = texCUBElod(_HDR, float4(iblDir, 3))+0.2;
-                // float3 lightDir = normalize(_WorldSpaceLightPos0.xyz);
-                // float3 halfDir = normalize(viewDir+lightDir);
+                float2 screenPos = float2(refractPosCS.x, -refractPosCS.y) / refractPosCS.w * 0.5 + 0.5;
+                screenPos = lerp(i.screenPos, screenPos, step(0.01, height));
+                float3 refractColor = tex2D(_GrabTexture, screenPos);
+                refractColor *= pow(_RefractColor.rgb, _RefractColor.a * abs(refractLength));
 
-                // float3 specularLight = _LightColor0.rgb * pow(saturate(dot(halfDir, normalDir)), 5);
-                // specularLight = max(0.2, specularLight);
-
-                // float3 specularColor = specularLight * specular * lumin * _Specular;
-                // float spHueFactor = pow(saturate(dot(viewDir, normalDir)), 5);
-
-                // specularColor *= lerp(_SpecularColor1.rgb, _SpecularColor2.rgb, spHueFactor);
-
-                // float3 ambientColor = _AmbientColor.rgb * _Ambient * albedo;
-
-                // float4 color = float4(specularColor + ambientColor,1);
-                // return color;
-                // float3 lightDir = normalize(_WorldSpaceLightPos0.xyz);
-                // float3 lightColor = _LightColor0.rgb;
-                // float3 reflectDir = normalize(reflect(-viewDir, normal));
-                // float3 specular = lightColor*saturate(max(0.2, dot(lightDir, -reflectDir)));
-                // // 虹膜边缘衰减
-                // specular *= smoothstep(_IrisFactor.x, _IrisFactor.y, height);
-                // // 瞳孔反光衰减
-                // specular *= (1-smoothstep(_IrisFactor.z, _IrisFactor.w, height));
-                // float4 color = float4(_Ambient.rgb*albedo+specular, 1);
-                // color.rgb *= pow(_RefractColor.rgb, _RefractColor.a * refractLength);
-                // // 折射透色效果
-                // // return float4((refractLength-0.7)/0.3, 0,0,1);
-                // // return float4(refractLength,0,0,1);
-                // // return float4(lerp(float3(0.54,0.85,1)*0.5, color.xyz, refractLength),1);
-                // // 巩膜虹膜衔接
-                // color =lerp(float4(0.8,0.76,0.79,1), color, smoothstep(_ScleraRange.x, _ScleraRange.y, innerHeight));
-                // // 角膜反光
-                // float2 longDir = normalize(reflectDir.xz);
-                // float long = acos(longDir.x) * (step(0, longDir.y)*2-1);
-                // float lat = asin(reflectDir.y);
-                // float3 reflectColor = tex2Dlod(_HDR, float4(TRANSFORM_TEX(float2(long*0.5/PI+0.5, lat/PI+0.5), _HDR), 0,2)).rgb;
-                // float fresnel = saturate(_Metallic + (1- _Metallic) * pow(1 - saturate(dot(normal, -viewDir)), 5));
-                // color.rgb = fresnel * pow(reflectColor,0.5) + color.rgb;
-                // return color;
+                float3 iblDir = mul(GetRotationFromEuler(_HDRRotation.xyz), reflect(viewDir, normalDir));
+                float3 reflectColor = texCUBElod(_HDR, float4(iblDir, 2));
+                float metallic = lerp(0.2, 1, step(0.01, height)) * _Metallic;
+                float fresnel = saturate(metallic + (1- metallic) * pow(1 - saturate(dot(normalDir, viewDir)), 5));
+                
+                float4 color = float4(fresnel * reflectColor + refractColor, 1);
+                return color;
             }
 
             ENDCG
